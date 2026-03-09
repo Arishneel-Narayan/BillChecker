@@ -112,8 +112,8 @@ if uploaded_files:
         st.markdown("---")
 
         # Visualizations
-        st.subheader("📈 Visualization & Analytics")
-        tab1, tab2, tab3, tab4 = st.tabs(["Bill Amount", "Consumption Breakdown", "Maximum Demand (MD)", "Timeline Analysis"])
+        st.subheader("📈 Cross-Sectional Analytics")
+        tab1, tab2, tab3 = st.tabs(["Bill Amount", "Consumption Breakdown", "Maximum Demand (MD)"])
         
         with tab1:
             fig1 = px.bar(
@@ -153,35 +153,45 @@ if uploaded_files:
             fig3.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
             st.plotly_chart(fig3, use_container_width=True)
             
-        with tab4:
-            if pd.api.types.is_datetime64_any_dtype(df.get('Date')):
-                # Try to see if there are multiple dates
-                if df['Date'].nunique() > 1:
-                    fig4 = px.line(
+        st.markdown("---")
+        
+        st.subheader("📆 Timeline Analytics")
+        if pd.api.types.is_datetime64_any_dtype(df.get('Date')):
+            # Try to see if there are multiple dates
+            if df['Date'].nunique() > 1:
+                time_tab1, time_tab2 = st.tabs(["Bill Expenditure Timeline", "Maximum Demand Timeline"])
+                
+                with time_tab1:
+                    fig_time1 = px.bar(
                         df, 
                         x="Date", 
                         y="Total_Due", 
                         color="Entity", 
-                        markers=True,
+                        barmode="group",
                         title="Timeline: Bill Expenditure Over Time",
+                        text_auto='.2s',
                         color_discrete_sequence=px.colors.qualitative.Pastel
                     )
-                    st.plotly_chart(fig4, use_container_width=True)
+                    fig_time1.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+                    st.plotly_chart(fig_time1, use_container_width=True)
                     
-                    fig5 = px.line(
+                with time_tab2:
+                    fig_time2 = px.bar(
                         df, 
                         x="Date", 
-                        y="kWh_Usage", 
+                        y="Max_Demand_kW", 
                         color="Entity", 
-                        markers=True,
-                        title="Timeline: kWh Usage Over Time",
+                        barmode="group",
+                        title="Timeline: Maximum Demand (kW) Over Time",
+                        text_auto='.1f',
                         color_discrete_sequence=px.colors.qualitative.Pastel
                     )
-                    st.plotly_chart(fig5, use_container_width=True)
-                else:
-                    st.info("Upload bills from multiple different months for the same entity to see timeline trends.")
+                    fig_time2.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+                    st.plotly_chart(fig_time2, use_container_width=True)
             else:
-                 st.info("Could not parse dates from the bills to build a timeline.")
+                st.info("Upload bills from multiple different months for the same entity to see timeline trends.")
+        else:
+             st.info("Could not parse dates from the bills to build a timeline.")
 
         st.markdown("---")
 
