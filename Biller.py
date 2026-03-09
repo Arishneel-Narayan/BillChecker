@@ -91,6 +91,16 @@ if uploaded_files:
     
     if all_data:
         df = pd.DataFrame(all_data)
+        
+        # Convert 'Month' to datetime for timeline sorting, handle parsing errors
+        try:
+            df['Date'] = pd.to_datetime(df['Month'], format='%B %Y', errors='coerce')
+        except Exception:
+            df['Date'] = df['Month'] # fallback
+        
+        # Sort chronologically if Date was successfully parsed
+        if pd.api.types.is_datetime64_any_dtype(df['Date']):
+            df = df.sort_values(by='Date')
 
         # Key Metrics Overview
         st.subheader("📊 Executive Overview")
@@ -103,7 +113,7 @@ if uploaded_files:
 
         # Visualizations
         st.subheader("📈 Visualization & Analytics")
-        tab1, tab2 = st.tabs(["Bill Amount per Entity", "Consumption Breakdown"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Bill Amount", "Consumption Breakdown", "Maximum Demand (MD)", "Timeline Analysis"])
         
         with tab1:
             fig1 = px.bar(
@@ -129,6 +139,49 @@ if uploaded_files:
             )
             fig2.update_traces(textposition='inside', textinfo='percent+label')
             st.plotly_chart(fig2, use_container_width=True)
+
+        with tab3:
+            fig3 = px.bar(
+                df,
+                x="Entity",
+                y="Max_Demand_kW",
+                color="Entity",
+                title="Maximum Demand (kW) by Entity",
+                text_auto='.1f',
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig3.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+            st.plotly_chart(fig3, use_container_width=True)
+            
+        with tab4:
+            if pd.api.types.is_datetime64_any_dtype(df.get('Date')):
+                # Try to see if there are multiple dates
+                if df['Date'].nunique() > 1:
+                    fig4 = px.line(
+                        df, 
+                        x="Date", 
+                        y="Total_Due", 
+                        color="Entity", 
+                        markers=True,
+                        title="Timeline: Bill Expenditure Over Time",
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    st.plotly_chart(fig4, use_container_width=True)
+                    
+                    fig5 = px.line(
+                        df, 
+                        x="Date", 
+                        y="kWh_Usage", 
+                        color="Entity", 
+                        markers=True,
+                        title="Timeline: kWh Usage Over Time",
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    st.plotly_chart(fig5, use_container_width=True)
+                else:
+                    st.info("Upload bills from multiple different months for the same entity to see timeline trends.")
+            else:
+                 st.info("Could not parse dates from the bills to build a timeline.")
 
         st.markdown("---")
 
