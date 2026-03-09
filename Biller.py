@@ -54,7 +54,6 @@ def get_gemini_insights(df_context):
     """Sends bill data to Gemini for cost-optimization strategies."""
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
         You are an expert energy consultant analyzing electricity consumption data for the FMF Group.
@@ -70,7 +69,18 @@ def get_gemini_insights(df_context):
         ### 🛠️ Engineering Strategies for Demand Reduction 
         (Provide a markdown table with 3 specific, actionable engineering strategies to reduce 'Maximum Demand' charges based on the entities listed. Columns: 'Strategy', 'Target Entity', 'Expected Impact'.)
         """
-        response = model.generate_content(prompt)
+        
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+        except Exception as api_err:
+            if '404' in str(api_err):
+                # Fallback to the older gemini-pro model if 1.5-flash is not available on this API key's project
+                model = genai.GenerativeModel('gemini-pro')
+                response = model.generate_content(prompt)
+            else:
+                raise api_err
+                
         return response.text
     except Exception as e:
         return f"⚠️ Error generating AI insights: {e}\nPlease check your API Key and network connection."
@@ -102,12 +112,21 @@ if uploaded_files:
         if pd.api.types.is_datetime64_any_dtype(df['Date']):
             df = df.sort_values(by='Date')
 
+        # Calculate Unique Months for Averages
+        number_of_months = df['Month'].nunique() if 'Month' in df.columns else 1
+        avg_expenditure_per_month = df['Total_Due'].sum() / number_of_months
+        avg_consumption_per_month = df['kWh_Usage'].sum() / number_of_months
+        
+        # Calculate Average Peak Demand (excluding zero values)
+        md_non_zero = df[df['Max_Demand_kW'] > 0]['Max_Demand_kW']
+        avg_md_per_month = md_non_zero.sum() / number_of_months if not md_non_zero.empty else 0
+
         # Key Metrics Overview
         st.subheader("📊 Executive Overview")
         col1, col2, col3 = st.columns(3)
-        col1.metric("Total Group Expenditure", f"${df['Total_Due'].sum():,.2f}")
-        col2.metric("Total kWh Consumed", f"{df['kWh_Usage'].sum():,.0f} kWh")
-        col3.metric("Peak Demand (Avg)", f"{df['Max_Demand_kW'].mean():,.1f} kW")
+        col1.metric("Avg Expenditure (per month)", f"${avg_expenditure_per_month:,.2f}")
+        col2.metric("Avg Consumption (per month)", f"{avg_consumption_per_month:,.0f} kWh")
+        col3.metric("Avg Peak Demand (per month)", f"{avg_md_per_month:,.1f} kW")
 
         st.markdown("---")
 
