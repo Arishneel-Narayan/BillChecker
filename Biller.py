@@ -55,10 +55,17 @@ def get_gemini_insights(df_context):
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         
+        # Summarize data to drastically reduce token usage and prevent API rate limits
+        summary_df = df_context.groupby('Entity').agg(
+            Total_Spend=('Total_Due', 'sum'),
+            Total_Consumption_kWh=('kWh_Usage', 'sum'),
+            Peak_Demand_kW=('Max_Demand_kW', 'max')
+        ).reset_index()
+        
         prompt = f"""
         You are an expert energy consultant analyzing electricity consumption data for the FMF Group.
-        Review the following tabular data:
-        {df_context.to_string()}
+        Review the following aggregated summary data for all entities:
+        {summary_df.to_string(index=False)}
         
         Provide a concise, professional report structured EXACTLY as follows. 
         DO NOT include conversational filler paragraphs.
