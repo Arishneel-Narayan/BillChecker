@@ -75,8 +75,8 @@ def get_gemini_insights(df_context):
             response = model.generate_content(prompt)
         except Exception as api_err:
             if '404' in str(api_err):
-                # Fallback to the older gemini-pro model if 1.5-flash is not available on this API key's project
-                model = genai.GenerativeModel('gemini-pro')
+                # Fallback to the 2.5-pro model if 1.5-flash is not available on this API key's project
+                model = genai.GenerativeModel('gemini-2.5-pro')
                 response = model.generate_content(prompt)
             else:
                 raise api_err
