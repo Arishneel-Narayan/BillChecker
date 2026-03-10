@@ -127,6 +127,10 @@ if uploaded_files:
         # Calculate Average Peak Demand (excluding zero values)
         md_non_zero = df[df['Max_Demand_kW'] > 0]['Max_Demand_kW']
         avg_md_per_month = md_non_zero.sum() / number_of_months if not md_non_zero.empty else 0
+        
+        # Calculate derived metrics for graphing, handling division by zero
+        df['Rate_per_kWh'] = df.apply(lambda row: row['Total_Due'] / row['kWh_Usage'] if row['kWh_Usage'] > 0 else 0, axis=1)
+        df['Price_per_kW_MD'] = df.apply(lambda row: row['Total_Due'] / row['Max_Demand_kW'] if row['Max_Demand_kW'] > 0 else 0, axis=1)
 
         # Key Metrics Overview
         st.subheader("📊 Executive Overview")
@@ -139,7 +143,13 @@ if uploaded_files:
 
         # Visualizations
         st.subheader("📈 Cross-Sectional Analytics")
-        tab1, tab2, tab3 = st.tabs(["Bill Amount", "Consumption Breakdown", "Maximum Demand (MD)"])
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "Bill Amount", 
+            "Consumption Breakdown", 
+            "Maximum Demand (MD)", 
+            "Rate ($/kWh)", 
+            "MD Price ($/kW)"
+        ])
         
         with tab1:
             fig1 = px.bar(
@@ -178,6 +188,34 @@ if uploaded_files:
             )
             fig3.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
             st.plotly_chart(fig3, use_container_width=True)
+            
+        with tab4:
+            fig4 = px.bar(
+                df,
+                x="Entity",
+                y="Rate_per_kWh",
+                color="Entity",
+                title="Effective Rate ($ per kWh) by Entity",
+                text_auto='.3f',
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig4.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+            fig4.update_layout(yaxis_title="$/kWh")
+            st.plotly_chart(fig4, use_container_width=True)
+
+        with tab5:
+            fig5 = px.bar(
+                df,
+                x="Entity",
+                y="Price_per_kW_MD",
+                color="Entity",
+                title="Relative MD Cost ($ per kW MD) by Entity",
+                text_auto='.2f',
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig5.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+            fig5.update_layout(yaxis_title="$/kW")
+            st.plotly_chart(fig5, use_container_width=True)
             
         st.markdown("---")
         
