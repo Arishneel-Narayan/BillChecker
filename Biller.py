@@ -67,14 +67,14 @@ def get_gemini_insights(df_context):
         Review the following aggregated summary data for all entities:
         {summary_df.to_string(index=False)}
         
-        Provide a concise, professional report structured EXACTLY as follows. 
-        DO NOT include conversational filler paragraphs.
+        CRITICAL CONTEXT: 
+        The entity 'Veisari' is typically charged at a higher base kWh rate but does NOT pay Maximum Demand (MD) charges. Do not flag Veisari's lack of MD cost or higher kWh base rate as an anomalous spike or error.
         
-        ### 📊 Key Findings
-        (Provide a bulleted list highlighting the highest consuming entity, anomalies in VAT, and usage-to-cost ratios.)
+        Provide your strategic report STRICTLY as a single Markdown table. 
+        DO NOT include conversational filler, introductory paragraphs, or bullet points outside of the table.
         
-        ### 🛠️ Engineering Strategies for Demand Reduction 
-        (Provide a markdown table with 3 specific, actionable engineering strategies to reduce 'Maximum Demand' charges based on the entities listed. Columns: 'Strategy', 'Target Entity', 'Expected Impact'.)
+        The table must contain 3 specific, actionable engineering strategies to reduce 'Maximum Demand' charges or overall consumption for the non-Veisari entities. 
+        Columns must be EXACTLY: 'Strategy', 'Target Entity', 'Expected Impact', 'IEEE Standard Justification' (Cite a relevant IEEE standard or recommended practice that supports this strategy).
         """
         
         try:
@@ -223,17 +223,17 @@ if uploaded_files:
         if pd.api.types.is_datetime64_any_dtype(df.get('Date')):
             # Try to see if there are multiple dates
             if df['Date'].nunique() > 1:
-                time_tab1, time_tab2 = st.tabs(["Bill Expenditure Timeline", "Maximum Demand Timeline"])
+                time_tab1, time_tab2, time_tab3, time_tab4 = st.tabs([
+                    "Bill Expenditure", 
+                    "Maximum Demand", 
+                    "Rate ($/kWh)", 
+                    "MD Price ($/kW)"
+                ])
                 
                 with time_tab1:
                     fig_time1 = px.bar(
-                        df, 
-                        x="Date", 
-                        y="Total_Due", 
-                        color="Entity", 
-                        barmode="group",
-                        title="Timeline: Bill Expenditure Over Time",
-                        text_auto='.2s',
+                        df, x="Date", y="Total_Due", color="Entity", barmode="group",
+                        title="Timeline: Bill Expenditure Over Time", text_auto='.2s',
                         color_discrete_sequence=px.colors.qualitative.Pastel
                     )
                     fig_time1.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
@@ -241,17 +241,32 @@ if uploaded_files:
                     
                 with time_tab2:
                     fig_time2 = px.bar(
-                        df, 
-                        x="Date", 
-                        y="Max_Demand_kW", 
-                        color="Entity", 
-                        barmode="group",
-                        title="Timeline: Maximum Demand (kW) Over Time",
-                        text_auto='.1f',
+                        df, x="Date", y="Max_Demand_kW", color="Entity", barmode="group",
+                        title="Timeline: Maximum Demand (kW) Over Time", text_auto='.1f',
                         color_discrete_sequence=px.colors.qualitative.Pastel
                     )
                     fig_time2.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
                     st.plotly_chart(fig_time2, use_container_width=True)
+                    
+                with time_tab3:
+                    fig_time3 = px.bar(
+                        df, x="Date", y="Rate_per_kWh", color="Entity", barmode="group",
+                        title="Timeline: Effective Rate ($ per kWh) Over Time", text_auto='.3f',
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    fig_time3.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+                    fig_time3.update_layout(yaxis_title="$/kWh")
+                    st.plotly_chart(fig_time3, use_container_width=True)
+
+                with time_tab4:
+                    fig_time4 = px.bar(
+                        df, x="Date", y="Price_per_kW_MD", color="Entity", barmode="group",
+                        title="Timeline: Relative MD Cost ($ per kW MD) Over Time", text_auto='.2f',
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    fig_time4.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+                    fig_time4.update_layout(yaxis_title="$/kW")
+                    st.plotly_chart(fig_time4, use_container_width=True)
             else:
                 st.info("Upload bills from multiple different months for the same entity to see timeline trends.")
         else:
