@@ -142,8 +142,8 @@ if uploaded_files:
         st.markdown("---")
 
         # Visualizations
-        st.subheader("📈 Cross-Sectional Analytics")
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        st.subheader("📈 Cross-Sectional Analytics (Averages)")
+        cross_tabs = st.tabs([
             "Bill Amount", 
             "Consumption Breakdown", 
             "Maximum Demand (MD)", 
@@ -151,51 +151,54 @@ if uploaded_files:
             "MD Price ($/kW)"
         ])
         
-        with tab1:
+        # Calculate averages per entity for the cross-sectional graphs
+        avg_df = df.groupby('Entity')[['Total_Due', 'kWh_Usage', 'Max_Demand_kW', 'Rate_per_kWh', 'Price_per_kW_MD']].mean().reset_index()
+        
+        with cross_tabs[0]:
             fig1 = px.bar(
-                df, 
+                avg_df, 
                 x="Entity", 
                 y="Total_Due", 
                 color="Entity", 
-                title="Total Bill Expenditure by Entity",
+                title="Average Bill Expenditure by Entity",
                 text_auto='.2s',
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
             fig1.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
             st.plotly_chart(fig1, use_container_width=True)
 
-        with tab2:
+        with cross_tabs[1]:
             fig2 = px.pie(
-                df, 
+                avg_df, 
                 names="Entity", 
                 values="kWh_Usage", 
-                title="Electricity Consumption (kWh) Distribution",
+                title="Average Electricity Consumption (kWh) Distribution",
                 hole=0.4,
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
             fig2.update_traces(textposition='inside', textinfo='percent+label')
             st.plotly_chart(fig2, use_container_width=True)
 
-        with tab3:
+        with cross_tabs[2]:
             fig3 = px.bar(
-                df,
+                avg_df,
                 x="Entity",
                 y="Max_Demand_kW",
                 color="Entity",
-                title="Maximum Demand (kW) by Entity",
+                title="Average Maximum Demand (kW) by Entity",
                 text_auto='.1f',
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
             fig3.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
             st.plotly_chart(fig3, use_container_width=True)
             
-        with tab4:
+        with cross_tabs[3]:
             fig4 = px.bar(
-                df,
+                avg_df,
                 x="Entity",
                 y="Rate_per_kWh",
                 color="Entity",
-                title="Effective Rate ($ per kWh) by Entity",
+                title="Average Effective Rate ($ per kWh) by Entity",
                 text_auto='.3f',
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
@@ -203,13 +206,13 @@ if uploaded_files:
             fig4.update_layout(yaxis_title="$/kWh")
             st.plotly_chart(fig4, use_container_width=True)
 
-        with tab5:
+        with cross_tabs[4]:
             fig5 = px.bar(
-                df,
+                avg_df,
                 x="Entity",
                 y="Price_per_kW_MD",
                 color="Entity",
-                title="Relative MD Cost ($ per kW MD) by Entity",
+                title="Average Relative MD Cost ($ per kW MD) by Entity",
                 text_auto='.2f',
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
